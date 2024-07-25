@@ -104,10 +104,14 @@ namespace occa {
       occa::dim fullDims = (outerDims * innerDims);
 
       size_t fullDims_[3] = {
-        fullDims.x, fullDims.y, fullDims.z
+        static_cast<std::size_t>(fullDims.x),
+        static_cast<std::size_t>(fullDims.y),
+        static_cast<std::size_t>(fullDims.z)
       };
       size_t innerDims_[3] = {
-        innerDims.x, innerDims.y, innerDims.z
+        static_cast<std::size_t>(innerDims.x), 
+        static_cast<std::size_t>(innerDims.y), 
+        static_cast<std::size_t>(innerDims.z)
       };
 
       // Set arguments

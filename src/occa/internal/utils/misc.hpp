@@ -6,6 +6,16 @@
 #include <occa/defines.hpp>
 #include <occa/types.hpp>
 
+#if (OCCA_OS == OCCA_WINDOWS_OS)
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
+#endif
+
+
 namespace occa {
   udim_t ptrDiff(void *start, void *end);
 

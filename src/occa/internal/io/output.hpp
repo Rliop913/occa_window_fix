@@ -4,6 +4,16 @@
 #include <iostream>
 #include <sstream>
 
+#if (OCCA_OS == OCCA_WINDOWS_OS)
+#ifdef stdout
+#undef stdout
+#endif
+#ifdef stderr
+#undef stderr
+#endif
+#endif
+
+
 namespace occa {
   namespace io {
     typedef void (*outputFunction_t)(const char *str);
@@ -32,6 +42,7 @@ namespace occa {
 
     extern output stdout;
     extern output stderr;
+    inline auto endl = "\n";
   }
 }
 

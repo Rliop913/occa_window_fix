@@ -1,7 +1,9 @@
 #include <occa/internal/utils/string.hpp>
 #include <occa/internal/modes/hip/registration.hpp>
 #include <occa/internal/modes/hip/utils.hpp>
-
+#if (OCCA_OS == OCCA_WINDOWS_OS)
+#pragma warning(disable:4996)
+#endif
 namespace occa {
   namespace hip {
     hipMode::hipMode() :

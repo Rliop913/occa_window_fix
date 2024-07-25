@@ -5,6 +5,8 @@
 
 #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
 #  include <pthread.h>
+#else
+#  include <mutex>
 #endif
 
 namespace occa {
@@ -13,7 +15,7 @@ namespace occa {
 #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
     pthread_mutex_t mutexHandle;
 #else
-    void *mutexHandle;
+    std::mutex mutexHandle;
 #endif
 
     mutex_t();

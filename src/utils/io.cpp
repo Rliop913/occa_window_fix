@@ -1,7 +1,9 @@
 #include <occa/utils/io.hpp>
 #include <occa/internal/io.hpp>
 #include <occa/internal/utils/string.hpp>
-
+#if (OCCA_OS == OCCA_WINDOWS_OS)
+#pragma warning(disable:4996)
+#endif
 namespace occa {
   namespace io {
     bool exists(const std::string &filename) {

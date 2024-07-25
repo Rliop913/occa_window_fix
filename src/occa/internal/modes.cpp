@@ -91,7 +91,11 @@ namespace occa {
     } else {
       io::stderr << "No OCCA mode given, defaulting to [Serial] mode\n";
     }
-    return getMode("Serial");
+    mode = getMode("Serial");
+    if (mode) {
+      io::stderr << "No modes in OCCA. even Serial mode. Please Build Again.\n";
+    }
+    return mode;
   }
 
   modeDevice_t* newModeDevice(const occa::json &props) {

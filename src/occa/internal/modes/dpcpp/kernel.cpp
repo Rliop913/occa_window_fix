@@ -64,8 +64,8 @@ namespace occa
     {
       // Setup kernel dimensions
       occa::dim fullDims = (outerDims * innerDims);
-      ::sycl::range<3> global_range{fullDims.z, fullDims.y, fullDims.x};
-      ::sycl::range<3> local_range{innerDims.z, innerDims.y, innerDims.x};
+      ::sycl::range<3> global_range{static_cast<std::size_t>(fullDims.z), static_cast<std::size_t>(fullDims.y), static_cast<std::size_t>(fullDims.x)};
+      ::sycl::range<3> local_range{static_cast<std::size_t>(innerDims.z), static_cast<std::size_t>(innerDims.y), static_cast<std::size_t>(innerDims.x)};
       ::sycl::nd_range<3> ndrange{global_range, local_range};
 
       std::vector<void *> args;

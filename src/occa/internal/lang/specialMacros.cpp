@@ -6,7 +6,9 @@
 
 #include <occa/internal/lang/preprocessor.hpp>
 #include <occa/internal/lang/specialMacros.hpp>
-
+#if (OCCA_OS == OCCA_WINDOWS_OS)
+#pragma warning(disable:4996)
+#endif
 namespace occa {
   namespace lang {
     // defined()

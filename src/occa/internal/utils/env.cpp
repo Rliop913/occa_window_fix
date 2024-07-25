@@ -5,7 +5,9 @@
 #include <occa/internal/io.hpp>
 #include <occa/internal/utils/env.hpp>
 #include <occa/internal/utils/sys.hpp>
-
+#if (OCCA_OS == OCCA_WINDOWS_OS)
+#pragma warning(disable:4996)
+#endif
 #if OCCA_THREAD_SHARABLE_ENABLED
 #include <occa/utils/mutex.hpp>
 #endif

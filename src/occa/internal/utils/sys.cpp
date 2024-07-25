@@ -31,6 +31,12 @@
 #  endif
 #else // OCCA_WINDOWS_OS
 #  include <windows.h>
+#  include <DbgHelp.h>
+#  include <filesystem>
+#pragma comment(lib, "DbgHelp.lib")
+#pragma warning(disable:4996)
+
+namespace fs = std::filesystem;
 #endif
 
 #include <iomanip>
@@ -218,9 +224,10 @@ namespace occa {
 
     std::string expandEnvVariables(const std::string &str) {
       const char *c = str.c_str();
-      const char *c0 = c;
       std::string expstr;
-
+#if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
+      const char *c0 = c;
+#endif
       while (*c != '\0') {
 #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
         if ((*c == '$') && ((c0 < c) || (*(c - 1) != '\\'))) {
@@ -261,6 +268,7 @@ namespace occa {
 
     void rmdir(const std::string &dir,
                const bool recursive) {
+#if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
       if (recursive) {
         // Remove files
         strVector files = io::files(dir);
@@ -275,10 +283,18 @@ namespace occa {
           rmdir(directories[i], true);
         }
       }
-#if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
       ::rmdir(dir.c_str());
 #else
-      ::_rmdir(dir.c_str());
+      fs::path pathTemp(dir);
+      if(!fs::is_directory(pathTemp)){
+        return;
+      }
+      if(recursive){
+        fs::remove_all(pathTemp);
+      }
+      else{
+        fs::remove(pathTemp);
+      }
 #endif
     }
 
@@ -333,7 +349,13 @@ namespace occa {
 #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
       return ::mkdir(dir.c_str(), 0755);
 #else
-      return ::_mkdir(dir.c_str());
+      fs::path pathTemp(dir);
+      if(fs::create_directory(pathTemp)){
+        return 0;
+      }
+      else{
+        return -1;
+      }
 #endif
     }
 
@@ -795,6 +817,10 @@ namespace occa {
         return sys::vendor::VisualStudio;
       }
 #endif
+      if (compiler.find("clang.exe") != std::string::npos) {
+        return sys::vendor::LLVM;
+      }
+      return sys::vendor::LLVM;//use clang as default vendor
     }
 
     std::string compilerCpp11Flags(const std::string &compiler) {
@@ -969,7 +995,7 @@ namespace occa {
         }
       }
 #else
-      void *sym = GetProcAddress((HMODULE) dlHandle, functionName.c_str());
+      FARPROC sym = GetProcAddress((HMODULE) dlHandle, functionName.c_str());
 
       if (sym == NULL) {
         OCCA_FORCE_ERROR("Error loading symbol [" << functionName << "] from binary with GetProcAddress");
@@ -1020,6 +1046,36 @@ namespace occa {
 
       return ss.str();
 #endif
+    static const int maxFrames = 1024;
+    void* frames[maxFrames];
+    HANDLE process = GetCurrentProcess();
+    SymInitialize(process, NULL, TRUE);
+
+    WORD frameCount = CaptureStackBackTrace(frameStart, maxFrames, frames, NULL);
+
+    std::vector<SYMBOL_INFO> symbols(frameCount);
+    char buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME * sizeof(TCHAR)];
+    SYMBOL_INFO* symbol = reinterpret_cast<SYMBOL_INFO*>(buffer);
+    symbol->MaxNameLen = MAX_SYM_NAME;
+    symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+    const int digits = std::to_string(frameCount - frameStart).size();
+
+    std::stringstream ss;
+    for (int i = 0; i < frameCount; i++) {
+        SymFromAddr(process, (DWORD64)(frames[i]), 0, symbol);
+
+        const std::string localFrame = std::to_string(frameCount - i - frameStart);
+        ss << indent
+           << std::string(digits - localFrame.size(), ' ')
+           << localFrame
+           << ' '
+           << symbol->Name << " + 0x" << std::hex << symbol->Address - symbol->Address << std::dec << '\n';
+    }
+
+    SymCleanup(process);
+    return ss.str();
+
     }
 
     std::string prettyStackSymbol(void *frame, const char *symbol) {

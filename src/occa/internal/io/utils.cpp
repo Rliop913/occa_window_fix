@@ -12,10 +12,16 @@
 #  include <dirent.h>
 #  include <unistd.h>
 #else
-#  include <windows.h>
+//#  include <windows.h>
+
 #  include <string>
+#  include <filesystem>
 #  include <algorithm> // std::replace
-#  include <io.h> // for _commit
+#  include <fcntl.h>
+#  include <io.h>
+namespace fs = std::filesystem;
+#pragma warning(disable:4996)
+//#  include <io.h> // for _commit
 #endif
 
 #include <occa/utils/hash.hpp>
@@ -70,17 +76,17 @@ namespace occa {
     }
 
     std::string currentWorkingDirectory() {
-      char cwdBuff[FILENAME_MAX];
 #if (OCCA_OS == OCCA_WINDOWS_OS)
-      ignoreResult(
-        _getcwd(cwdBuff, sizeof(cwdBuff))
-      );
+      fs::path location =  fs::current_path();
+      return endWithSlash(((const std::string)location.string()));
+
 #else
+      char cwdBuff[FILENAME_MAX];
       ignoreResult(
         getcwd(cwdBuff, sizeof(cwdBuff))
       );
-#endif
       return endWithSlash(std::string(cwdBuff));
+#endif
     }
 
     libraryPathMap_t &getLibraryPathMap() {
@@ -117,28 +123,12 @@ namespace occa {
     }
 
     std::string convertSlashes(const std::string &filename) {
+      auto temp = filename;
 #if (OCCA_OS == OCCA_WINDOWS_OS)
-      char slash = '\\';
-      if (isAbsolutePath(filename)) {
-        slash = filename[2];
-      } else {
-        const char *c = filename.c_str();
-        const char *c0 = c;
-
-        while (*c != '\0') {
-          if ((*c == '\\') || (*c == '/')) {
-            slash = *c;
-            break;
-          }
-          ++c;
-        }
-      }
-      if (slash == '\\') {
-        return std::replace(filename.begin(), filename.end(),
+      std::replace(temp.begin(), temp.end(),
                             '\\', '/');
-      }
 #endif
-      return filename;
+      return temp;
     }
 
     std::string slashToSnake(const std::string &str) {
@@ -158,10 +148,8 @@ namespace occa {
       return ((0 < filename.size()) &&
               (filename[0] == '/'));
 #else
-      return ((3 <= filename.size())
-              isAlpha(filename[0]) &&
-              (filename[1] == ':') &&
-              ((filename[2] == '\\') || (filename[2] == '/')));
+      fs::path pathTemp(filename);
+      return pathTemp.is_absolute();
 #endif
     }
 
@@ -178,8 +166,8 @@ namespace occa {
         return filename;
       }
 
-      const char *c = filename.c_str();
 #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
+      const char *c = filename.c_str();
       if ((c[0] == '~') &&
           ((c[1] == '/') || (c[1] == '\0'))) {
         if (chars == 1) {
@@ -265,7 +253,7 @@ namespace occa {
     }
 
     std::string dirname(const std::string &filename) {
-      std::string expFilename = removeEndSlash(io::expandFilename(filename));
+      std::string expFilename = removeEndSlash((const std::string)io::expandFilename(filename));
       std::string basename = io::basename(expFilename);
       return expFilename.substr(0, expFilename.size() - basename.size());
     }
@@ -321,21 +309,32 @@ namespace occa {
     }
 
     bool isFile(const std::string &filename) {
+      #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
       const std::string expFilename = io::expandFilename(filename);
       struct stat statInfo;
       return ((stat(expFilename.c_str(), &statInfo) == 0) &&
               ((statInfo.st_mode & S_IFMT) == S_IFREG));
+      #else
+      fs::path pathTemp(filename);
+      return fs::is_regular_file(pathTemp);
+      #endif
     }
 
     bool isDir(const std::string &filename) {
+      #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
       const std::string expFilename = io::expandFilename(filename);
       struct stat statInfo;
       return ((stat(expFilename.c_str(), &statInfo) == 0) &&
               ((statInfo.st_mode & S_IFMT) == S_IFDIR));
+      #else
+      fs::path pathTemp(filename);
+      return fs::is_directory(pathTemp);
+      #endif
     }
 
     strVector filesInDir(const std::string &dir, const unsigned char fileType) {
       strVector files;
+      #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
       const std::string expDir = expandFilename(dir);
 
       DIR *c_dir = ::opendir(expDir.c_str());
@@ -360,6 +359,26 @@ namespace occa {
       }
       ::closedir(c_dir);
       return files;
+      #else
+      fs::path pathTemp(dir);
+      if(!fs::is_directory(pathTemp)){
+        return files;
+      }
+      else{
+        fs::directory_iterator Ditr(pathTemp);
+        for(auto file : Ditr){
+          if(file.is_regular_file()){
+            fs::path fullpath = file.path();
+            fullpath = fs::absolute(fullpath);
+            files.push_back(fullpath.string());
+          }
+        }
+        return files;
+      }
+
+
+
+      #endif
     }
 
     strVector directories(const std::string &dir) {
@@ -374,7 +393,6 @@ namespace occa {
                  size_t *chars,
                  enums::FileType fileType) {
       std::string expFilename = io::expandFilename(filename);
-
       FILE *fp = fopen(
         expFilename.c_str(),
         fileType == enums::FILE_TYPE_BINARY ? "rb" : "r"
@@ -386,11 +404,15 @@ namespace occa {
       size_t bufferSize = 0;
 
       if (fileType != enums::FILE_TYPE_PSEUDO) {
+        #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
         struct stat statbuf;
         stat(expFilename.c_str(), &statbuf);
 
         const size_t nchars = statbuf.st_size;
-
+        #else
+        fs::path pathTemp(filename);
+        auto nchars = fs::file_size(pathTemp);
+        #endif
         // Initialize buffer
         buffer = new char[nchars + 1];
         ::memset(buffer, 0, nchars + 1);
@@ -402,11 +424,22 @@ namespace occa {
         char *linePtr = NULL;
         size_t lineSize = 0;
         std::stringstream ss;
-
+        #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
         while (getline(&linePtr, &lineSize, fp) != -1) {
           ss << linePtr;
         }
-
+        #else
+        std::vector<char> readBuffer(1024);
+        while(true){
+          lineSize = fread(readBuffer.data(), 1, readBuffer.size(), fp);
+          if(lineSize != 0){
+            ss.write(readBuffer.data(), lineSize);
+          }
+          else{
+            break;
+          }
+        }
+        #endif
         ::free(linePtr);
 
         const std::string bufferContents = ss.str();
@@ -442,21 +475,25 @@ namespace occa {
       const std::string filedir(dirname(filename));
       int fd;
 
+#if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
       fd = open(filename.c_str(), O_RDONLY);
-#if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
       fsync(fd);
-#else
-      _commit(fd);
-#endif
       close(fd);
+#else
+      fd = _open(filename.c_str(), _O_RDONLY);
+      _commit(fd);
+      _close(fd);
+#endif
 
-      fd = open(filedir.c_str(), O_RDONLY);
 #if (OCCA_OS & (OCCA_LINUX_OS | OCCA_MACOS_OS))
+      fd = open(filedir.c_str(), O_RDONLY);
       fsync(fd);
-#else
-      _commit(fd);
-#endif
       close(fd);
+#else
+      fd = _open(filedir.c_str(), _O_RDONLY);
+      _commit(fd);
+      _close(fd);
+#endif
     }
 
     void write(const std::string &filename,

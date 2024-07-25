@@ -10,7 +10,9 @@
 #include <occa/internal/modes/serial/stream.hpp>
 #include <occa/internal/modes/serial/streamTag.hpp>
 #include <occa/internal/lang/modes/serial.hpp>
-
+#if (OCCA_OS == OCCA_WINDOWS_OS)
+#pragma warning(disable:4996)
+#endif
 namespace occa {
   namespace serial {
     device::device(const occa::json &properties_) :
@@ -259,7 +261,7 @@ namespace occa {
         if (visualStudioTools) {
           compilerEnvScript = "\"" + std::string(visualStudioTools) + "..\\..\\VC\\vcvarsall.bat\" " + byteness;
         } else {
-          io::stdout << "WARNING: Visual Studio environment variable not found -> compiler environment (vcvarsall.bat) maybe not correctly setup." << std::endl;
+          io::stdout << "WARNING: Visual Studio environment variable not found -> compiler environment (vcvarsall.bat) maybe not correctly setup." << io::endl;
         }
 #endif
       }

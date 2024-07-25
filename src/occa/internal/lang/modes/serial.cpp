@@ -82,7 +82,7 @@ namespace occa {
 #if OCCA_OS == OCCA_WINDOWS_OS
         // Add extern "C" [__declspec(dllexport)]
         qualifiers.addFirst(kernelAttr.source->origin,
-                            dllexport_);
+                            declspec_);
 #endif
         qualifiers.addFirst(kernelAttr.source->origin,
                             externC);

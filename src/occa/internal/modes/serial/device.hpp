@@ -23,10 +23,10 @@ namespace occa {
       modeStream_t* createStream(const occa::json &props) override;
       modeStream_t* wrapStream(void* ptr, const occa::json &props) override;
 
-      streamTag tagStream() override;
-      void waitFor(streamTag tag) override;
-      double timeBetween(const streamTag &startTag,
-                         const streamTag &endTag) override;
+      occa::streamTag tagStream() override;
+      void waitFor(occa::streamTag tag) override;
+      double timeBetween(const occa::streamTag &startTag,
+                         const occa::streamTag &endTag) override;
       //================================
 
       //---[ Kernel ]-------------------

@@ -14,7 +14,7 @@ namespace occa {
     const qualifier_t attribute_    ("__attribute__" , qualifierType::attribute_);
 
     // Windows types
-    const qualifier_t declspec_     ("__declspec"    , qualifierType::declspec_);
+    const qualifier_t declspec_     ("__declspec(dllexport)"    , qualifierType::declspec_);
 
     const qualifier_t extern_       ("extern"        , qualifierType::extern_);
     const qualifier_t externC       ("extern \"C\""  , qualifierType::externC);

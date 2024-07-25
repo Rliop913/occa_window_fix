@@ -8,6 +8,9 @@
 #include <occa/internal/io.hpp>
 #include <occa/internal/utils/sys.hpp>
 #include <occa/core/base.hpp>
+#if (OCCA_OS == OCCA_WINDOWS_OS)
+#pragma warning(disable:4996)
+#endif
 
 namespace occa {
   namespace opencl {

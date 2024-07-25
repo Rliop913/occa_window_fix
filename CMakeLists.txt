@@ -90,8 +90,12 @@ endif()
 #=======================================
 
 #---[ libocca.so ]----------------------
+if(WIN32)
+add_library(libocca STATIC)
+target_link_libraries(libocca PRIVATE dbghelp)
+else()
 add_library(libocca SHARED)
-
+endif()
 # Without this, CMake will create liblibocca.so
 set_target_properties(libocca PROPERTIES
   OUTPUT_NAME occa
@@ -124,7 +128,9 @@ if(OCCA_ENABLE_OPENMP)
 
     message("-- OpenMP include dirs: ${OpenMP_CXX_INCLUDE_DIRS}")
     message("-- OpenMP libraries:    ${OpenMP_CXX_LIBRARIES}")
-
+    
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fopenmp")
     # Use the provided imported target OpenMP::OpenMP_CXX,
     # (which wraps the CXX_INCLUDE_DIRS and CXX_LIBRARIES,) to make our package relocatable
     target_link_libraries(libocca PRIVATE OpenMP::OpenMP_CXX)
